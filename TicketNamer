@@ -1,0 +1,48 @@
+import discord
+import re
+from discord.ext import commands
+
+TOKEN = "MTM1NTMzNjQ5ODUwNTA1NjQwOQ.GLGq1Q.muhXoWrHVy4TtBg2g8yFl4fxhGAV4eHicf662I"
+GUILD_ID = 1354996871327649862  # Replace with your server ID
+TICKET_CATEGORY_ID = 1355335611912949952  # Replace with your ticket category ID
+
+# Ticket type keywords
+TICKET_TYPES = {
+    "Support Ticket": "support",
+    "Payment Ticket": "payment",
+    "Media Ticket": "media"
+}
+
+intents = discord.Intents.default()
+intents.guilds = True
+intents.members = True
+intents.messages = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+@bot.event
+async def on_ready():
+    print(f"✅ Logged in as {bot.user}")
+
+@bot.event
+async def on_message(message):
+    """Detects ticket type from embed messages and renames the channel."""
+    if message.author.bot and isinstance(message.channel, discord.TextChannel):
+        if message.channel.category_id == TICKET_CATEGORY_ID:
+            if message.embeds:  # Check if the bot sent an embed
+                embed = message.embeds[0]
+                embed_text = embed.description if embed.description else ""
+                
+                # Extract username from the embed (Assumes format: "@User has created a new <Type> Ticket ticket.")
+                username_match = re.search(r"@(\w+)", embed_text)
+                username = username_match.group(1) if username_match else "user"
+
+                # Determine the ticket type
+                for keyword, rename_prefix in TICKET_TYPES.items():
+                    if keyword in embed_text:
+                        new_name = f"{rename_prefix}-{username}"
+                        await message.channel.edit(name=new_name)
+                        print(f"✅ Renamed ticket to: {new_name}")
+                        break
+
+bot.run(TOKEN)
